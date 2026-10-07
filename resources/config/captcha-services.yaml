@@ -1,0 +1,50 @@
+# Optional wiring for apps using symfony/dependency-injection.
+# Import it from your own services.yaml (derafu/foundation does it for a site):
+#
+#   imports:
+#       - { resource: '../vendor/derafu/captcha/resources/config/captcha-services.yaml' }
+#
+# The captcha of the application is configured with the environment variables
+# CAPTCHA_PROVIDER (hcaptcha, turnstile, recaptcha-v3 or altcha),
+# CAPTCHA_SITE_KEY and CAPTCHA_SECRET_KEY, and CAPTCHA_MIN_SCORE for
+# recaptcha-v3. Without CAPTCHA_PROVIDER the application has no captcha.
+#
+# It needs a PSR-18 client and the PSR-17 factories (derafu/foundation has them)
+# and the parameter app.locale, the language of the widgets.
+
+parameters:
+    # The defaults of the variables are strings, as Symfony asks for.
+    env(CAPTCHA_PROVIDER): ''
+    env(CAPTCHA_SITE_KEY): ''
+    env(CAPTCHA_SECRET_KEY): ''
+    env(CAPTCHA_MIN_SCORE): '0.5'
+
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        public: false
+
+    # Feeds resources/translations into the consuming app's Translator (the
+    # app must pass $resourceProviders: !tagged_iterator
+    # derafu_translation.resource_provider to TranslatorFactory::create(),
+    # see derafu/translation's translation-services.yaml). The tag is
+    # explicit because _instanceof does not propagate across imported files.
+    Derafu\Captcha\Translation\CaptchaTranslationResourceProvider:
+        tags: ['derafu_translation.resource_provider']
+
+    # The captcha provider of the forms (derafu/form uses it if there is one):
+    # the one of the configuration, or one that is not available when there is
+    # no CAPTCHA_PROVIDER.
+    Derafu\Form\Contract\Captcha\CaptchaProviderInterface:
+        factory: ['Derafu\Captcha\CaptchaProviderFactory', 'create']
+        arguments:
+            $provider: '%env(string:CAPTCHA_PROVIDER)%'
+            $siteKey: '%env(string:CAPTCHA_SITE_KEY)%'
+            $secretKey: '%env(string:CAPTCHA_SECRET_KEY)%'
+            $client: '@Psr\Http\Client\ClientInterface'
+            $requestFactory: '@Psr\Http\Message\RequestFactoryInterface'
+            $streamFactory: '@Psr\Http\Message\StreamFactoryInterface'
+            $locale: '%app.locale%'
+            $minScore: '%env(float:CAPTCHA_MIN_SCORE)%'
