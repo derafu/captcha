@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Derafu\Captcha;
 
+use AltchaOrg\Altcha\Altcha;
 use Derafu\Captcha\Provider\AltchaProvider;
 use Derafu\Captcha\Provider\DisabledCaptchaProvider;
 use Derafu\Captcha\Provider\HCaptchaProvider;
@@ -19,6 +20,7 @@ use Derafu\Captcha\Provider\ReCaptchaV3Provider;
 use Derafu\Captcha\Provider\TurnstileProvider;
 use Derafu\Captcha\Provider\UnavailableCaptchaProvider;
 use Derafu\Form\Contract\Captcha\CaptchaProviderInterface;
+use Derafu\Translation\Exception\Core\TranslatableRuntimeException as RuntimeException;
 use Derafu\Translation\Exception\Logic\TranslatableInvalidArgumentException as InvalidArgumentException;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
@@ -59,6 +61,8 @@ final class CaptchaProviderFactory
      * @param float $minScore The lowest score that reCAPTCHA v3 accepts.
      * @throws InvalidArgumentException If the provider is not known or its keys
      * are missing.
+     * @throws RuntimeException If the package that the provider needs is not
+     * installed.
      */
     public static function create(
         ?string $provider,
@@ -78,6 +82,11 @@ final class CaptchaProviderFactory
 
         $siteKey = (string) $siteKey;
         $secretKey = (string) $secretKey;
+
+        // The package of ALTCHA is not required: the other providers do not use it.
+        if ($provider === self::ALTCHA) {
+            self::requires($provider, Altcha::class, 'altcha-org/altcha');
+        }
 
         return match ($provider) {
             self::NONE => new DisabledCaptchaProvider(),
@@ -116,6 +125,23 @@ final class CaptchaProviderFactory
                 'providers' => implode(', ', [self::HCAPTCHA, self::TURNSTILE, self::RECAPTCHA_V3, self::ALTCHA, self::NONE]),
             ]),
         };
+    }
+
+    /**
+     * Checks that the package that a provider needs is installed.
+     *
+     * @param class-string $class A class of the package.
+     * @throws RuntimeException If it is not.
+     */
+    private static function requires(string $provider, string $class, string $package): void
+    {
+        if (!class_exists($class)) {
+            throw new RuntimeException([
+                'The captcha provider "{provider}" requires "{package}". Run: composer require {package}',
+                'provider' => $provider,
+                'package' => $package,
+            ]);
+        }
     }
 
     /**

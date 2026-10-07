@@ -29,8 +29,7 @@
         "derafu/translation": "dev-main",
         "derafu/form": "dev-main",
         "psr/http-client": "^1.0",
-        "psr/http-factory": "^1.0",
-        "altcha-org/altcha": "^2.3"
+        "psr/http-factory": "^1.0"
     },
     "require-dev": {
         "ext-xdebug": "*",
@@ -42,7 +41,8 @@
         "symfony/dependency-injection": "^8.1",
         "symfony/config": "^8.1",
         "symfony/yaml": "^8.1",
-        "derafu/data-processor": "dev-main"
+        "derafu/data-processor": "dev-main",
+        "altcha-org/altcha": "^2.3"
     },
     "scripts": {
         "docs": "php tools/phpdocumentor run --config=phpdoc.xml",
@@ -55,6 +55,7 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "suggest": {
-        "nikic/php-parser": "Required by the tests of the messages of the package (Derafu\\Translation\\Lint reads the code)."
+        "nikic/php-parser": "Required by the tests of the messages of the package (Derafu\\Translation\\Lint reads the code).",
+        "altcha-org/altcha": "Required by the ALTCHA provider (CAPTCHA_PROVIDER=altcha): it makes and verifies its challenges. The other providers do not need it."
     }
 }

@@ -23,6 +23,8 @@ return [
         'El captcha está desactivado.',
     'The captcha provider "{provider}" is not known. Use one of: {providers}.' =>
         'El proveedor de captcha "{provider}" no se conoce. Usa uno de: {providers}.',
+    'The captcha provider "{provider}" requires "{package}". Run: composer require {package}' =>
+        'El proveedor de captcha "{provider}" requiere "{package}". Ejecuta: composer require {package}',
     'The captcha provider "{provider}" needs the variable {variable}.' =>
         'El proveedor de captcha "{provider}" necesita la variable {variable}.',
 ];

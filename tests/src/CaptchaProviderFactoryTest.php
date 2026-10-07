@@ -121,6 +121,35 @@ final class CaptchaProviderFactoryTest extends TestCase
     }
 
     #[Test]
+    public function altchaWithoutItsPackageIsAnErrorThatSaysWhatToInstall(): void
+    {
+        $this->assertSame(
+            'Derafu\\Translation\\Exception\\Core\\TranslatableRuntimeException: '
+                . 'The captcha provider "altcha" requires "altcha-org/altcha". Run: composer require altcha-org/altcha',
+            $this->withoutAltcha('altcha')
+        );
+    }
+
+    #[Test]
+    public function theOtherProvidersDoNotNeedThePackageOfAltcha(): void
+    {
+        foreach (['hcaptcha', 'turnstile', 'recaptcha-v3', 'none'] as $provider) {
+            $this->assertSame('created', $this->withoutAltcha($provider), $provider);
+        }
+    }
+
+    /**
+     * What happens when a provider is created in a PHP that does not have the
+     * package of ALTCHA (see `tests/fixtures/without-altcha.php`).
+     */
+    private function withoutAltcha(string $provider): string
+    {
+        return trim((string) shell_exec(
+            escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/../fixtures/without-altcha.php') . ' ' . escapeshellarg($provider)
+        ));
+    }
+
+    #[Test]
     public function theMinimumScoreIsTheOneThatWasGiven(): void
     {
         $http = new HttpFactory();
