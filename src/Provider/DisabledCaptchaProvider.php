@@ -16,14 +16,15 @@ use Derafu\Form\Contract\Captcha\CaptchaProviderInterface;
 use Derafu\Translation\Exception\Core\TranslatableLogicException as LogicException;
 
 /**
- * The provider of an application that has not configured a captcha.
+ * The provider of an application that decided, on purpose, not to have a captcha
+ * (`CAPTCHA_PROVIDER=none`).
  *
- * It is not available and it is not disabled: a form that is protected with the
- * captcha can not be rendered nor processed, and the error tells to configure
- * one. It is always in the container, so the services do not depend on the
- * environment variables.
+ * The forms that are protected with the captcha have none then, and it is not an
+ * error. It is not the same as an application that did not configure anything
+ * (see `UnavailableCaptchaProvider`): there the forms fail and say so, so a form
+ * is never left open because nobody thought of the captcha.
  */
-final class UnavailableCaptchaProvider implements CaptchaProviderInterface
+final class DisabledCaptchaProvider implements CaptchaProviderInterface
 {
     /**
      * {@inheritDoc}
@@ -38,7 +39,7 @@ final class UnavailableCaptchaProvider implements CaptchaProviderInterface
      */
     public function isDisabled(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -46,7 +47,7 @@ final class UnavailableCaptchaProvider implements CaptchaProviderInterface
      */
     public function getResponseField(): string
     {
-        throw new LogicException('There is no captcha configured.');
+        throw new LogicException('The captcha is disabled.');
     }
 
     /**
@@ -54,7 +55,7 @@ final class UnavailableCaptchaProvider implements CaptchaProviderInterface
      */
     public function getWidget(string $formId): string
     {
-        throw new LogicException('There is no captcha configured.');
+        throw new LogicException('The captcha is disabled.');
     }
 
     /**
@@ -62,6 +63,6 @@ final class UnavailableCaptchaProvider implements CaptchaProviderInterface
      */
     public function verify(string $token, string $formId): bool
     {
-        throw new LogicException('There is no captcha configured.');
+        throw new LogicException('The captcha is disabled.');
     }
 }

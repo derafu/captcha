@@ -19,6 +19,8 @@ return [
         'No se entiende la respuesta del servicio de captcha.',
     'There is no captcha configured.' =>
         'No hay un captcha configurado.',
+    'The captcha is disabled.' =>
+        'El captcha está desactivado.',
     'The captcha provider "{provider}" is not known. Use one of: {providers}.' =>
         'El proveedor de captcha "{provider}" no se conoce. Usa uno de: {providers}.',
     'The captcha provider "{provider}" needs the variable {variable}.' =>

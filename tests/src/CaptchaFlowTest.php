@@ -18,6 +18,7 @@ use AltchaOrg\Altcha\Challenge;
 use AltchaOrg\Altcha\Payload;
 use AltchaOrg\Altcha\SolveChallengeOptions;
 use Derafu\Captcha\Provider\AltchaProvider;
+use Derafu\Captcha\Provider\DisabledCaptchaProvider;
 use Derafu\Captcha\Provider\HCaptchaProvider;
 use Derafu\Captcha\Provider\UnavailableCaptchaProvider;
 use Derafu\DataProcessor\ProcessorFactory;
@@ -26,15 +27,17 @@ use Derafu\Form\Factory\FormRendererFactory;
 use Derafu\Form\Form;
 use Derafu\Form\Processor\FormDataProcessor;
 use Derafu\Form\Processor\FormRulesResolver;
+use Derafu\Translation\Exception\Core\TranslatableLogicException;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\HttpFactory;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Twig\Error\RuntimeError as TwigRuntimeError;
 
 /**
  * The providers with what they are for: the renderer and the processor of
- * derafu/form, with a form that asks for the captcha. hCaptcha is asked for real
+ * derafu/form, with a form that is protected with the captcha. hCaptcha is asked for real
  * with the keys for tests, and ALTCHA is solved as a browser does it.
  */
 #[CoversNothing]
@@ -72,7 +75,7 @@ final class CaptchaFlowTest extends TestCase
                 'type' => 'VerticalLayout',
                 'elements' => [['type' => 'Control', 'scope' => '#/properties/email']],
             ],
-            'options' => ['captcha' => $captcha, 'csrf_protection' => false],
+            'options' => ['captcha_protection' => $captcha, 'csrf_protection' => false],
         ]);
     }
 
@@ -164,16 +167,36 @@ final class CaptchaFlowTest extends TestCase
     }
 
     #[Test]
-    public function withoutAConfiguredCaptchaTheFormHasNoneAndIsAccepted(): void
+    public function withoutAConfiguredCaptchaAProtectedFormFailsAndSaysWhatToConfigure(): void
     {
         $provider = new UnavailableCaptchaProvider();
+
+        foreach ([
+            fn () => $this->render($provider),
+            fn () => $this->process($provider, ['email' => 'ana@example.com']),
+        ] as $use) {
+            try {
+                $use();
+                $this->fail('A protected form was used without a captcha.');
+            } catch (\Throwable $e) {
+                $logic = $e instanceof TwigRuntimeError ? $e->getPrevious() : $e;
+                $this->assertInstanceOf(TranslatableLogicException::class, $logic);
+                $this->assertStringContainsString('CAPTCHA_PROVIDER=altcha', $logic->getMessage());
+            }
+        }
+    }
+
+    #[Test]
+    public function anApplicationThatDisabledTheCaptchaOnPurposeHasNoneAndNoError(): void
+    {
+        $provider = new DisabledCaptchaProvider();
 
         $this->assertStringNotContainsString('captcha', $this->render($provider));
         $this->assertTrue($this->process($provider, ['email' => 'ana@example.com'])->isValid());
     }
 
     #[Test]
-    public function aFormThatDoesNotAskForTheCaptchaHasNoneEvenWithAProvider(): void
+    public function aFormThatIsNotProtectedHasNoCaptchaEvenWithAProvider(): void
     {
         $this->assertStringNotContainsString('h-captcha', $this->render($this->hcaptcha(), captcha: false));
     }

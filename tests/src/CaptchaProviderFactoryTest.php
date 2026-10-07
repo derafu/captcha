@@ -14,6 +14,7 @@ namespace Derafu\TestsCaptcha;
 
 use Derafu\Captcha\CaptchaProviderFactory;
 use Derafu\Captcha\Provider\AltchaProvider;
+use Derafu\Captcha\Provider\DisabledCaptchaProvider;
 use Derafu\Captcha\Provider\HCaptchaProvider;
 use Derafu\Captcha\Provider\ReCaptchaV3Provider;
 use Derafu\Captcha\Provider\TurnstileProvider;
@@ -30,8 +31,9 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * The provider of the application is made from its configuration: no provider
- * is an application without captcha, and a provider that is not known or that
- * lacks its keys is an error of the configuration.
+ * is an application that did not configure a captcha, `none` is one that decided
+ * on purpose not to have it, and a provider that is not known or that lacks its
+ * keys is an error of the configuration.
  */
 #[CoversClass(CaptchaProviderFactory::class)]
 #[UsesClass(HCaptchaProvider::class)]
@@ -39,6 +41,7 @@ use PHPUnit\Framework\TestCase;
 #[UsesClass(ReCaptchaV3Provider::class)]
 #[UsesClass(AltchaProvider::class)]
 #[UsesClass(UnavailableCaptchaProvider::class)]
+#[UsesClass(DisabledCaptchaProvider::class)]
 #[UsesClass(\Derafu\Captcha\Provider\AbstractHttpCaptchaProvider::class)]
 final class CaptchaProviderFactoryTest extends TestCase
 {
@@ -60,7 +63,9 @@ final class CaptchaProviderFactoryTest extends TestCase
             'reCAPTCHA v3' => ['recaptcha-v3', ReCaptchaV3Provider::class],
             'Altcha' => ['altcha', AltchaProvider::class],
             'in capitals and with spaces' => ['  HCaptcha ', HCaptchaProvider::class],
-            'none' => [null, UnavailableCaptchaProvider::class],
+            'none on purpose' => ['none', DisabledCaptchaProvider::class],
+            'none on purpose, in capitals' => [' NONE ', DisabledCaptchaProvider::class],
+            'not configured' => [null, UnavailableCaptchaProvider::class],
             'empty' => ['', UnavailableCaptchaProvider::class],
             'blank' => ['   ', UnavailableCaptchaProvider::class],
         ];
@@ -80,7 +85,7 @@ final class CaptchaProviderFactoryTest extends TestCase
     public function aProviderThatIsNotKnownIsAnErrorThatSaysWhichOnesAre(): void
     {
         $this->expectException(TranslatableInvalidArgumentException::class);
-        $this->expectExceptionMessage('The captcha provider "recaptcha" is not known. Use one of: hcaptcha, turnstile, recaptcha-v3, altcha.');
+        $this->expectExceptionMessage('The captcha provider "recaptcha" is not known. Use one of: hcaptcha, turnstile, recaptcha-v3, altcha, none.');
 
         $this->create('recaptcha');
     }

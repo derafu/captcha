@@ -12,30 +12,31 @@ declare(strict_types=1);
 
 namespace Derafu\TestsCaptcha\Provider;
 
-use Derafu\Captcha\Provider\UnavailableCaptchaProvider;
+use Derafu\Captcha\Provider\DisabledCaptchaProvider;
 use Derafu\Translation\Exception\Core\TranslatableLogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
- * The provider of an application without captcha says that there is none, and
- * it is an error to use it for anything else.
+ * The provider of an application that decided not to have a captcha says that it
+ * is disabled on purpose, which is not the same as not available, and it is an
+ * error to use it for anything else.
  */
-#[CoversClass(UnavailableCaptchaProvider::class)]
-final class UnavailableCaptchaProviderTest extends TestCase
+#[CoversClass(DisabledCaptchaProvider::class)]
+final class DisabledCaptchaProviderTest extends TestCase
 {
     #[Test]
-    public function itIsNotAvailableAndItIsNotDisabledOnPurpose(): void
+    public function itIsDisabledOnPurposeAndNotAvailable(): void
     {
-        $this->assertFalse((new UnavailableCaptchaProvider())->isAvailable());
-        $this->assertFalse((new UnavailableCaptchaProvider())->isDisabled());
+        $this->assertTrue((new DisabledCaptchaProvider())->isDisabled());
+        $this->assertFalse((new DisabledCaptchaProvider())->isAvailable());
     }
 
     #[Test]
     public function theRestIsAnError(): void
     {
-        $provider = new UnavailableCaptchaProvider();
+        $provider = new DisabledCaptchaProvider();
 
         foreach ([
             fn () => $provider->getResponseField(),
@@ -44,9 +45,9 @@ final class UnavailableCaptchaProviderTest extends TestCase
         ] as $use) {
             try {
                 $use();
-                $this->fail('It was used without a captcha.');
+                $this->fail('It was used with the captcha disabled.');
             } catch (TranslatableLogicException $e) {
-                $this->assertSame('There is no captcha configured.', $e->getMessage());
+                $this->assertSame('The captcha is disabled.', $e->getMessage());
             }
         }
     }

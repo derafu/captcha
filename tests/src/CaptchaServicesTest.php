@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Derafu\TestsCaptcha;
 
 use Derafu\Captcha\Provider\AltchaProvider;
+use Derafu\Captcha\Provider\DisabledCaptchaProvider;
 use Derafu\Captcha\Provider\HCaptchaProvider;
 use Derafu\Captcha\Provider\ReCaptchaV3Provider;
 use Derafu\Captcha\Provider\TurnstileProvider;
@@ -76,12 +77,23 @@ final class CaptchaServicesTest extends TestCase
     }
 
     #[Test]
-    public function withoutAProviderTheApplicationHasNoCaptcha(): void
+    public function withoutAProviderTheApplicationDidNotConfigureACaptcha(): void
     {
         $provider = $this->provider([]);
 
         $this->assertInstanceOf(UnavailableCaptchaProvider::class, $provider);
         $this->assertFalse($provider->isAvailable());
+        $this->assertFalse($provider->isDisabled());
+    }
+
+    #[Test]
+    public function noneIsAnApplicationThatDecidedNotToHaveACaptcha(): void
+    {
+        $provider = $this->provider(['CAPTCHA_PROVIDER' => 'none']);
+
+        $this->assertInstanceOf(DisabledCaptchaProvider::class, $provider);
+        $this->assertFalse($provider->isAvailable());
+        $this->assertTrue($provider->isDisabled());
     }
 
     #[Test]

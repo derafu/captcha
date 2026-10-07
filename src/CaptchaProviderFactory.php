@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Derafu\Captcha;
 
 use Derafu\Captcha\Provider\AltchaProvider;
+use Derafu\Captcha\Provider\DisabledCaptchaProvider;
 use Derafu\Captcha\Provider\HCaptchaProvider;
 use Derafu\Captcha\Provider\ReCaptchaV3Provider;
 use Derafu\Captcha\Provider\TurnstileProvider;
@@ -28,9 +29,11 @@ use Psr\Http\Message\StreamFactoryInterface;
  * environment variables `CAPTCHA_PROVIDER`, `CAPTCHA_SITE_KEY` and
  * `CAPTCHA_SECRET_KEY`).
  *
- * Without a provider the application has no captcha: the forms that ask for it
- * have none. A provider that is not known, or that lacks its keys, is an error
- * of the configuration and not a captcha that fails later.
+ * Without a provider the application did not configure a captcha, and a form that
+ * is protected with it can not be rendered nor processed. `none` is the way to
+ * say, on purpose, that the application has no captcha: those forms have none and
+ * there is no error. A provider that is not known, or that lacks its keys, is an
+ * error of the configuration and not a captcha that fails later.
  */
 final class CaptchaProviderFactory
 {
@@ -42,11 +45,13 @@ final class CaptchaProviderFactory
 
     public const ALTCHA = 'altcha';
 
+    public const NONE = 'none';
+
     /**
      * Creates the provider.
      *
-     * @param string|null $provider The name of the provider, empty if there is
-     * none.
+     * @param string|null $provider The name of the provider (`none` for no
+     * captcha on purpose), empty if it was not configured.
      * @param string|null $siteKey The public key (not used by Altcha).
      * @param string|null $secretKey The secret key (for Altcha, the key that
      * signs its challenges).
@@ -75,6 +80,7 @@ final class CaptchaProviderFactory
         $secretKey = (string) $secretKey;
 
         return match ($provider) {
+            self::NONE => new DisabledCaptchaProvider(),
             self::HCAPTCHA => new HCaptchaProvider(
                 self::keyOf($provider, 'CAPTCHA_SITE_KEY', $siteKey),
                 self::keyOf($provider, 'CAPTCHA_SECRET_KEY', $secretKey),
@@ -107,7 +113,7 @@ final class CaptchaProviderFactory
             default => throw new InvalidArgumentException([
                 'The captcha provider "{provider}" is not known. Use one of: {providers}.',
                 'provider' => $provider,
-                'providers' => implode(', ', [self::HCAPTCHA, self::TURNSTILE, self::RECAPTCHA_V3, self::ALTCHA]),
+                'providers' => implode(', ', [self::HCAPTCHA, self::TURNSTILE, self::RECAPTCHA_V3, self::ALTCHA, self::NONE]),
             ]),
         };
     }

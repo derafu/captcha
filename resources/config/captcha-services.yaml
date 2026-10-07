@@ -7,7 +7,9 @@
 # The captcha of the application is configured with the environment variables
 # CAPTCHA_PROVIDER (hcaptcha, turnstile, recaptcha-v3 or altcha),
 # CAPTCHA_SITE_KEY and CAPTCHA_SECRET_KEY, and CAPTCHA_MIN_SCORE for
-# recaptcha-v3. Without CAPTCHA_PROVIDER the application has no captcha.
+# recaptcha-v3. Without CAPTCHA_PROVIDER the application did not configure a
+# captcha, and the forms that are protected with it fail; CAPTCHA_PROVIDER=none
+# says, on purpose, that it has none.
 #
 # It needs a PSR-18 client and the PSR-17 factories (derafu/foundation has them)
 # and the parameter app.locale, the language of the widgets.
@@ -35,8 +37,8 @@ services:
         tags: ['derafu_translation.resource_provider']
 
     # The captcha provider of the forms (derafu/form uses it if there is one):
-    # the one of the configuration, or one that is not available when there is
-    # no CAPTCHA_PROVIDER.
+    # the one of the configuration, one that is not available when there is no
+    # CAPTCHA_PROVIDER, or one that is disabled with CAPTCHA_PROVIDER=none.
     Derafu\Form\Contract\Captcha\CaptchaProviderInterface:
         factory: ['Derafu\Captcha\CaptchaProviderFactory', 'create']
         arguments:

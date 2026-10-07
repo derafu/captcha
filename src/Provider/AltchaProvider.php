@@ -76,6 +76,14 @@ final class AltchaProvider implements CaptchaProviderInterface
     /**
      * {@inheritDoc}
      */
+    public function isDisabled(): bool
+    {
+        return false;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function getResponseField(): string
     {
         return 'altcha';

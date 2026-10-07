@@ -60,6 +60,14 @@ abstract class AbstractHttpCaptchaProvider implements CaptchaProviderInterface
     }
 
     /**
+     * {@inheritDoc}
+     */
+    public function isDisabled(): bool
+    {
+        return false;
+    }
+
+    /**
      * The URL of the verification of the service.
      */
     abstract protected function getVerifyUrl(): string;
