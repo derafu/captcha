@@ -141,7 +141,25 @@ final class AltchaProviderTest extends TestCase
         $this->assertGreaterThan(time(), $challenge->parameters->expiresAt);
         $this->assertStringContainsString(' name="altcha"', $widget);
         $this->assertStringContainsString(' language="es"', $widget);
-        $this->assertStringContainsString('<script async defer type="module" src="https://cdn.jsdelivr.net/npm/altcha@2/dist/altcha.min.js"></script>', $widget);
+        $this->assertStringContainsString('<script async defer type="module" src="https://cdn.jsdelivr.net/npm/altcha@3/dist/main/altcha.i18n.min.js"></script>', $widget);
+    }
+
+    #[Test]
+    public function theChallengeAndTheScriptAreOfTheSameProtocol(): void
+    {
+        // The widget of the npm package `altcha` 2 only reads challenges of the
+        // protocol 1 (`salt`, `challenge`, `number`); this is the protocol 2
+        // (`parameters` with `keyPrefix`), that the widget 3 reads. Whoever changes
+        // one has to change the other: in a browser the other widget only says
+        // "Verification failed".
+        $widget = $this->provider()->getWidget('contact');
+        $challenge = json_decode($this->challengeOf($widget)->toJson(), true);
+
+        $this->assertIsArray($challenge);
+        $this->assertArrayHasKey('parameters', $challenge);
+        $this->assertArrayHasKey('keyPrefix', $challenge['parameters']);
+        $this->assertArrayNotHasKey('salt', $challenge);
+        $this->assertStringContainsString('/npm/altcha@3/', $widget);
     }
 
     #[Test]

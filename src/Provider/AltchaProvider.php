@@ -32,12 +32,21 @@ use InvalidArgumentException;
  * expires (the CSRF token of the form is the protection against a form that is
  * sent by someone else).
  *
- * The script of the widget is loaded from a CDN by default; an application that
- * does not want it serves the file itself and gives its URL.
+ * The script of the widget is loaded from a CDN by default (the major 3 of the
+ * npm package `altcha`, that goes with `altcha-org/altcha` 2); an application
+ * that does not want it serves the file itself and gives its URL.
  */
 final class AltchaProvider implements CaptchaProviderInterface
 {
-    private const SCRIPT = 'https://cdn.jsdelivr.net/npm/altcha@2/dist/altcha.min.js';
+    /**
+     * The widget that speaks the protocol of the library `altcha-org/altcha` 2
+     * (challenges of key derivation: `parameters`, `keyPrefix`...) is the major 3
+     * of the npm package `altcha`. The major 2 is the widget of the protocol 1
+     * (SHA-256 and a number): it does not read this challenge and its error is
+     * only "Verification failed". The build with the languages (`i18n`) is the one
+     * that has the translations that the `language` attribute chooses.
+     */
+    private const SCRIPT = 'https://cdn.jsdelivr.net/npm/altcha@3/dist/main/altcha.i18n.min.js';
 
     private readonly Altcha $altcha;
 
