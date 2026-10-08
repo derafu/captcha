@@ -20,6 +20,7 @@ use Derafu\Captcha\Provider\TurnstileProvider;
 use Derafu\Captcha\Provider\UnavailableCaptchaProvider;
 use Derafu\Captcha\Translation\CaptchaTranslationResourceProvider;
 use Derafu\Form\Contract\Captcha\CaptchaProviderInterface;
+use Derafu\Translation\Exception\Logic\TranslatableInvalidArgumentException as InvalidArgumentException;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\HttpFactory;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -31,6 +32,7 @@ use Psr\Http\Message\StreamFactoryInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
+use Symfony\Component\VarExporter\LazyObjectInterface;
 
 /**
  * An application that imports the services of the package gets, for the interface
@@ -50,9 +52,12 @@ final class CaptchaServicesTest extends TestCase
     }
 
     /**
+     * The provider that the container gives: the proxy, that makes the real one
+     * the first time that it is used.
+     *
      * @param array<string, string> $environment
      */
-    private function provider(array $environment): CaptchaProviderInterface
+    private function lazyProvider(array $environment): CaptchaProviderInterface
     {
         foreach ($environment as $name => $value) {
             putenv($name . '=' . $value);
@@ -72,8 +77,53 @@ final class CaptchaServicesTest extends TestCase
 
         $provider = $container->get(CaptchaProviderInterface::class);
         $this->assertInstanceOf(CaptchaProviderInterface::class, $provider);
+        $this->assertInstanceOf(LazyObjectInterface::class, $provider, 'The provider must be lazy.');
 
         return $provider;
+    }
+
+    /**
+     * The real provider of the configuration.
+     *
+     * @param array<string, string> $environment
+     */
+    private function provider(array $environment): CaptchaProviderInterface
+    {
+        $provider = $this->lazyProvider($environment);
+        $this->assertInstanceOf(LazyObjectInterface::class, $provider);
+        $real = $provider->initializeLazyObject();
+        $this->assertInstanceOf(CaptchaProviderInterface::class, $real);
+
+        return $real;
+    }
+
+    #[Test]
+    public function aProviderThatIsNotWellConfiguredFailsWhereItIsUsedAndNotWhenItIsGiven(): void
+    {
+        // The renderer of the forms is given the provider in the first page that is
+        // rendered: the application must not fail there.
+        $provider = $this->lazyProvider(['CAPTCHA_PROVIDER' => 'altcha']);
+        $this->assertInstanceOf(LazyObjectInterface::class, $provider);
+        $this->assertFalse($provider->isLazyObjectInitialized());
+
+        // And it says what to fix when a form uses it.
+        try {
+            $provider->isAvailable();
+            $this->fail('The provider that lacks its key worked.');
+        } catch (InvalidArgumentException $e) {
+            $this->assertSame('The captcha provider "altcha" needs the variable CAPTCHA_SECRET_KEY.', $e->getMessage());
+        }
+    }
+
+    #[Test]
+    public function aProviderThatIsNotKnownFailsWhereItIsUsed(): void
+    {
+        $provider = $this->lazyProvider(['CAPTCHA_PROVIDER' => 'recaptcha']);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The captcha provider "recaptcha" is not known.');
+
+        $provider->getWidget('contact');
     }
 
     #[Test]

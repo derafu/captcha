@@ -39,7 +39,15 @@ services:
     # The captcha provider of the forms (derafu/form uses it if there is one):
     # the one of the configuration, one that is not available when there is no
     # CAPTCHA_PROVIDER, or one that is disabled with CAPTCHA_PROVIDER=none.
+    #
+    # It is lazy: the provider is made when a form first uses it, not when the
+    # renderer of the forms is built, which is in the first page that is rendered.
+    # A provider that is not well configured (it lacks its keys, it is not known,
+    # its package is not installed) fails where the captcha is used, with the
+    # message that says what to fix, and not in every page of the site, error
+    # page included.
     Derafu\Form\Contract\Captcha\CaptchaProviderInterface:
+        lazy: true
         factory: ['Derafu\Captcha\CaptchaProviderFactory', 'create']
         arguments:
             $provider: '%env(string:CAPTCHA_PROVIDER)%'
