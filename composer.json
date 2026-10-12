@@ -2,7 +2,7 @@
     "name": "derafu/captcha",
     "description": "Derafu: Captcha - Captcha providers for the forms of derafu/form",
     "type": "library",
-    "homepage": "https://www.derafu.dev/docs/core/captcha",
+    "homepage": "https://www.derafu.dev/docs/ui/captcha",
     "license": "MIT",
     "authors": [
         {
