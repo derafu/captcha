@@ -114,7 +114,7 @@ final class AltchaProvider implements CaptchaProviderInterface
         return '<altcha-widget class="d-block mt-2 mb-4"'
             . ' challenge="' . $this->escape($challenge->toJson()) . '"'
             . ' name="' . $this->getResponseField() . '"'
-            . ' language="' . $this->escape(strtolower((string) preg_split('/[-_]/', $this->locale)[0])) . '"></altcha-widget>'
+            . ' language="' . $this->escape(strtolower(explode('-', str_replace('_', '-', $this->locale), 2)[0])) . '"></altcha-widget>'
             . '<script async defer type="module" src="' . $this->escape($this->script) . '"></script>';
     }
 

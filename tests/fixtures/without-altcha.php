@@ -14,9 +14,17 @@ $loader = require dirname(__DIR__, 2) . '/vendor/autoload.php';
 $loader->setPsr4('AltchaOrg\\Altcha\\', []);
 
 $http = new HttpFactory();
+$arguments = $_SERVER['argv'] ?? [];
+if (!is_array($arguments)) {
+    throw new InvalidArgumentException('The command arguments must be an array.');
+}
+$provider = $arguments[1] ?? '';
+if (!is_string($provider)) {
+    throw new InvalidArgumentException('The provider argument must be a string.');
+}
 
 try {
-    CaptchaProviderFactory::create((string) ($_SERVER['argv'][1] ?? ''), 'site', 'secret', new Client(), $http, $http);
+    CaptchaProviderFactory::create($provider, 'site', 'secret', new Client(), $http, $http);
     echo 'created';
 } catch (Throwable $e) {
     echo get_class($e), ': ', $e->getMessage();

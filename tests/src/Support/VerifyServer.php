@@ -25,6 +25,9 @@ final class VerifyServer
      */
     private $process;
 
+    /**
+     * @param resource $process
+     */
     private function __construct(private readonly int $port, private readonly string $log, $process)
     {
         $this->process = $process;
@@ -32,12 +35,17 @@ final class VerifyServer
 
     public static function start(): self
     {
-        $log = (string) tempnam(sys_get_temp_dir(), 'captcha-verify-');
+        $log = tempnam(sys_get_temp_dir(), 'captcha-verify-');
+        Assert::assertIsString($log);
 
         // A free port: it is asked to the system and released right away.
         $socket = stream_socket_server('tcp://127.0.0.1:0', $errno, $error);
         Assert::assertNotFalse($socket, (string) $error);
-        $port = (int) substr(strrchr((string) stream_socket_get_name($socket, false), ':'), 1);
+        $address = stream_socket_get_name($socket, false);
+        Assert::assertIsString($address);
+        $portSuffix = strrchr($address, ':');
+        Assert::assertNotFalse($portSuffix);
+        $port = (int) substr($portSuffix, 1);
         fclose($socket);
 
         $process = proc_open(
@@ -71,13 +79,21 @@ final class VerifyServer
     /**
      * What the server received, in order.
      *
-     * @return list<array<string, mixed>>
+     * @return list<array<array-key, mixed>>
      */
     public function requests(): array
     {
+        $content = file_get_contents($this->log);
+        Assert::assertIsString($content);
+
         return array_map(
-            fn (string $line) => json_decode($line, true),
-            array_values(array_filter(explode("\n", (string) file_get_contents($this->log))))
+            static function (string $line): array {
+                $request = json_decode($line, true);
+                Assert::assertIsArray($request);
+
+                return $request;
+            },
+            array_values(array_filter(explode("\n", $content)))
         );
     }
 

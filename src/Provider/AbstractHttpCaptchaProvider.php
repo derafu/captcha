@@ -76,7 +76,7 @@ abstract class AbstractHttpCaptchaProvider implements CaptchaProviderInterface
      * Asks the service.
      *
      * @param array<string, string> $fields The fields of the verification.
-     * @return array<string, mixed> The answer of the service.
+     * @return array<array-key, mixed> The answer of the service.
      * @throws CaptchaUnavailableException If it could not be asked.
      */
     protected function ask(array $fields): array
@@ -115,7 +115,7 @@ abstract class AbstractHttpCaptchaProvider implements CaptchaProviderInterface
      */
     protected function getLanguage(): string
     {
-        return strtolower((string) preg_split('/[-_]/', $this->locale)[0]);
+        return strtolower(explode('-', str_replace('_', '-', $this->locale), 2)[0]);
     }
 
     /**

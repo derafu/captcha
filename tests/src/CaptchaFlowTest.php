@@ -150,7 +150,16 @@ final class CaptchaFlowTest extends TestCase
 
         $this->assertStringContainsString('<altcha-widget', $html);
         $this->assertSame(1, preg_match('/ challenge="([^"]*)"/', $html, $matches));
-        $challenge = Challenge::fromArray(json_decode(html_entity_decode($matches[1], ENT_QUOTES), true));
+        $encoded = $matches[1] ?? null;
+        $this->assertIsString($encoded);
+        $decoded = json_decode(html_entity_decode($encoded, ENT_QUOTES), true);
+        $this->assertIsArray($decoded);
+        $data = [];
+        foreach ($decoded as $key => $value) {
+            $this->assertIsString($key);
+            $data[$key] = $value;
+        }
+        $challenge = Challenge::fromArray($data);
         $solution = (new Altcha(hmacSignatureSecret: 'a-secret-key'))->solveChallenge(new SolveChallengeOptions(
             algorithm: new Pbkdf2(),
             challenge: $challenge,

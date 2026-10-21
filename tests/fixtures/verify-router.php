@@ -7,6 +7,9 @@ declare(strict_types=1);
 // tests). It writes what it received, one JSON per line, in VERIFY_LOG.
 
 $log = getenv('VERIFY_LOG');
+if (!is_string($log) || $log === '') {
+    throw new RuntimeException('VERIFY_LOG must be a non-empty string.');
+}
 file_put_contents($log, json_encode([
     'method' => $_SERVER['REQUEST_METHOD'],
     'content_type' => $_SERVER['CONTENT_TYPE'] ?? null,
@@ -28,6 +31,9 @@ $answers = [
 ];
 
 $response = $_POST['response'] ?? '';
+if (!is_string($response)) {
+    throw new InvalidArgumentException('The response field must be a string.');
+}
 
 if ($response === 'server-error') {
     http_response_code(500);

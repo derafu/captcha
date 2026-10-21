@@ -154,6 +154,7 @@ final class HCaptchaProviderTest extends TestCase
     public function theProviderIsAvailableAndTheFieldIsTheOneOfTheService(): void
     {
         $this->assertTrue($this->provider()->isAvailable());
+        $this->assertFalse($this->provider()->isDisabled());
         $this->assertSame('h-captcha-response', $this->provider()->getResponseField());
     }
 }

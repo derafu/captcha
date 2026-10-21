@@ -47,7 +47,17 @@ final class AltchaProviderTest extends TestCase
     {
         $this->assertSame(1, preg_match('/ challenge="([^"]*)"/', $widget, $matches));
 
-        return Challenge::fromArray(json_decode(html_entity_decode($matches[1], ENT_QUOTES), true));
+        $encoded = $matches[1] ?? null;
+        $this->assertIsString($encoded);
+        $decoded = json_decode(html_entity_decode($encoded, ENT_QUOTES), true);
+        $this->assertIsArray($decoded);
+        $data = [];
+        foreach ($decoded as $key => $value) {
+            $this->assertIsString($key);
+            $data[$key] = $value;
+        }
+
+        return Challenge::fromArray($data);
     }
 
     /**
@@ -124,7 +134,11 @@ final class AltchaProviderTest extends TestCase
     {
         $provider = $this->provider();
         $payload = json_decode((string) base64_decode($this->solve($provider->getWidget('contact'))), true);
+        $this->assertIsArray($payload);
+        $this->assertIsArray($payload['solution']);
         $key = $payload['solution']['derivedKey'];
+        $this->assertIsString($key);
+        $this->assertNotSame('', $key);
         $payload['solution']['derivedKey'] = ($key[0] === 'a' ? 'b' : 'a') . substr($key, 1);
 
         $this->assertFalse($provider->verify(base64_encode((string) json_encode($payload)), 'contact'));
@@ -157,6 +171,7 @@ final class AltchaProviderTest extends TestCase
 
         $this->assertIsArray($challenge);
         $this->assertArrayHasKey('parameters', $challenge);
+        $this->assertIsArray($challenge['parameters']);
         $this->assertArrayHasKey('keyPrefix', $challenge['parameters']);
         $this->assertArrayNotHasKey('salt', $challenge);
         $this->assertStringContainsString('/npm/altcha@3/', $widget);
@@ -185,6 +200,7 @@ final class AltchaProviderTest extends TestCase
     public function theProviderIsAvailableAndTheFieldIsTheOneOfTheWidget(): void
     {
         $this->assertTrue($this->provider()->isAvailable());
+        $this->assertFalse($this->provider()->isDisabled());
         $this->assertSame('altcha', $this->provider()->getResponseField());
     }
 }

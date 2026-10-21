@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Derafu\TestsCaptcha;
 
+use Composer\Autoload\ClassLoader;
 use Derafu\Captcha\CaptchaProviderFactory;
 use Derafu\Captcha\Provider\AltchaProvider;
 use Derafu\Captcha\Provider\DisabledCaptchaProvider;
@@ -19,12 +20,17 @@ use Derafu\Captcha\Provider\HCaptchaProvider;
 use Derafu\Captcha\Provider\ReCaptchaV3Provider;
 use Derafu\Captcha\Provider\TurnstileProvider;
 use Derafu\Captcha\Provider\UnavailableCaptchaProvider;
+use Derafu\Captcha\Translation\CaptchaTranslationResourceProvider;
 use Derafu\Form\Contract\Captcha\CaptchaProviderInterface;
+use Derafu\Translation\Exception\Core\TranslatableRuntimeException;
 use Derafu\Translation\Exception\Logic\TranslatableInvalidArgumentException;
+use Derafu\Translation\TranslatorFactory;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\HttpFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
@@ -36,6 +42,7 @@ use PHPUnit\Framework\TestCase;
  * keys is an error of the configuration.
  */
 #[CoversClass(CaptchaProviderFactory::class)]
+#[UsesClass(CaptchaTranslationResourceProvider::class)]
 #[UsesClass(HCaptchaProvider::class)]
 #[UsesClass(TurnstileProvider::class)]
 #[UsesClass(ReCaptchaV3Provider::class)]
@@ -128,6 +135,42 @@ final class CaptchaProviderFactoryTest extends TestCase
                 . 'The captcha provider "altcha" requires "altcha-org/altcha". Run: composer require altcha-org/altcha',
             $this->withoutAltcha('altcha')
         );
+    }
+
+    #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function theMissingAltchaDependencyHasATranslatableException(): void
+    {
+        $loaders = ClassLoader::getRegisteredLoaders();
+        $prefix = 'AltchaOrg\\Altcha\\';
+        $originalPaths = [];
+        foreach ($loaders as $directory => $loader) {
+            $originalPaths[$directory] = $loader->getPrefixesPsr4()[$prefix] ?? [];
+            $loader->setPsr4($prefix, []);
+        }
+
+        try {
+            $this->assertFalse(class_exists('AltchaOrg\\Altcha\\Altcha'));
+            try {
+                $this->create('altcha');
+                $this->fail('ALTCHA must not be created without its dependency.');
+            } catch (TranslatableRuntimeException $exception) {
+                $this->assertSame(
+                    'The captcha provider "altcha" requires "altcha-org/altcha". Run: composer require altcha-org/altcha',
+                    $exception->getMessage(),
+                );
+                $translator = TranslatorFactory::create('es', resourceProviders: [new CaptchaTranslationResourceProvider()]);
+                $this->assertSame(
+                    'El proveedor de captcha "altcha" requiere "altcha-org/altcha". Ejecuta: composer require altcha-org/altcha',
+                    $exception->trans($translator),
+                );
+            }
+        } finally {
+            foreach ($loaders as $directory => $loader) {
+                $loader->setPsr4($prefix, $originalPaths[$directory]);
+            }
+        }
     }
 
     #[Test]
