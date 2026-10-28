@@ -21,18 +21,20 @@ use Derafu\Captcha\Provider\AltchaProvider;
 use Derafu\Captcha\Provider\DisabledCaptchaProvider;
 use Derafu\Captcha\Provider\HCaptchaProvider;
 use Derafu\Captcha\Provider\UnavailableCaptchaProvider;
-use Derafu\DataProcessor\ProcessorFactory;
 use Derafu\Form\Contract\Captcha\CaptchaProviderInterface;
-use Derafu\Form\Factory\FormRendererFactory;
+use Derafu\Form\Contract\Processor\FormDataProcessorInterface;
+use Derafu\Form\Contract\Processor\ProcessResultInterface;
+use Derafu\Form\Contract\Renderer\FormRendererInterface;
 use Derafu\Form\Form;
-use Derafu\Form\Processor\FormDataProcessor;
-use Derafu\Form\Processor\FormRulesResolver;
 use Derafu\Translation\Exception\Core\TranslatableLogicException;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\HttpFactory;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Config\FileLocator;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Twig\Error\RuntimeError as TwigRuntimeError;
 
 /**
@@ -81,19 +83,41 @@ final class CaptchaFlowTest extends TestCase
 
     private function render(?CaptchaProviderInterface $provider, bool $captcha = true): string
     {
-        return FormRendererFactory::create(['captcha_provider' => $provider])->render($this->form($captcha));
+        $renderer = $this->services($provider)->get(FormRendererInterface::class);
+        self::assertInstanceOf(FormRendererInterface::class, $renderer);
+
+        return $renderer->render($this->form($captcha));
     }
 
     /**
      * @param array<string, mixed> $data
      */
-    private function process(?CaptchaProviderInterface $provider, array $data): \Derafu\Form\Contract\Processor\ProcessResultInterface
+    private function process(?CaptchaProviderInterface $provider, array $data): ProcessResultInterface
     {
-        return (new FormDataProcessor(
-            new FormRulesResolver(),
-            (new ProcessorFactory())->create(),
-            captchaProvider: $provider
-        ))->process($this->form(), $data);
+        $processor = $this->services($provider)->get(FormDataProcessorInterface::class);
+        self::assertInstanceOf(FormDataProcessorInterface::class, $processor);
+
+        return $processor->process($this->form(), $data);
+    }
+
+    private function services(?CaptchaProviderInterface $provider): ContainerBuilder
+    {
+        $container = new ContainerBuilder();
+        $container->setParameter('kernel.project_dir', dirname(__DIR__, 2));
+        (new YamlFileLoader($container, new FileLocator(dirname(__DIR__) . '/fixtures/config')))
+            ->load('form-flow.yaml');
+        if ($provider === null) {
+            $container->removeDefinition(CaptchaProviderInterface::class);
+        }
+        foreach ([FormRendererInterface::class, FormDataProcessorInterface::class] as $id) {
+            $container->getDefinition($id)->setPublic(true);
+        }
+        $container->compile(true);
+        if ($provider !== null) {
+            $container->set(CaptchaProviderInterface::class, $provider);
+        }
+
+        return $container;
     }
 
     #[Test]

@@ -1,0 +1,10 @@
+# The application uses the real Form/Renderer and Data Processor composition.
+# Each scenario supplies its actual captcha provider as an external dependency.
+imports:
+    - { resource: '../../../vendor/derafu/form/resources/config/form-services.yaml' }
+    - { resource: '../../../vendor/derafu/data-processor/resources/config/data-processor-services.yaml' }
+
+services:
+    Derafu\Form\Contract\Captcha\CaptchaProviderInterface:
+        synthetic: true
+        public: true
