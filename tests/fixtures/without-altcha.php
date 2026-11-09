@@ -6,11 +6,14 @@ declare(strict_types=1);
 // installed (its namespace is taken out of the autoloader), and prints what
 // happens: the class of the exception and its message.
 
+use Composer\Autoload\ClassLoader;
 use Derafu\Captcha\CaptchaProviderFactory;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\HttpFactory;
+use PHPUnit\Framework\Assert;
 
 $loader = require dirname(__DIR__, 2) . '/vendor/autoload.php';
+Assert::assertInstanceOf(ClassLoader::class, $loader);
 $loader->setPsr4('AltchaOrg\\Altcha\\', []);
 
 $http = new HttpFactory();
